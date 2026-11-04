@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cardápio Digital · Sabores do Rio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --acai:#3a1c4f; --acai-2:#512a6b; --ink:#231a2b; --paper:#f6f7f3; --white:#fff;
+  --line:#dcdfd5; --muted:#6a6573; --guarana:#d1344a; --folha:#2f7a4d; --folha-bg:#e3f1e8; --alerta:#fbe9d0; --alerta-ink:#7a4a05;
+  --font:"Bricolage Grotesque",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+}
+*{box-sizing:border-box;margin:0}
+html{scroll-behavior:smooth}
+body{font-family:var(--font);background:var(--paper);color:var(--ink);line-height:1.5;padding-bottom:5.5rem}
+button,input{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--guarana);outline-offset:2px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+
+/* Topo + console de voz */
+.topo{background:var(--acai);color:#fff;padding:2rem 1.25rem 2.5rem}
+.topo-in{max-width:1120px;margin:auto;display:grid;gap:1.75rem}
+.topo h1{font-size:clamp(2rem,6vw,3.6rem);font-weight:800;line-height:1.02;letter-spacing:-.02em}
+.topo p.sub{color:#d9c9e6;max-width:46ch;margin-top:.6rem}
+.voz{background:var(--acai-2);border-radius:1.25rem 1.25rem 1.25rem .35rem;padding:1.1rem;display:grid;gap:.9rem}
+.voz-linha{display:flex;gap:1rem;align-items:center}
+#mic{flex:none;width:4.5rem;height:4.5rem;border-radius:50%;border:0;background:var(--guarana);color:#fff;font-size:1.8rem;cursor:pointer;display:grid;place-items:center;transition:transform .15s}
+#mic:hover{transform:scale(1.05)}
+#mic:disabled{background:#7d6a8c;cursor:not-allowed}
+#mic.ouvindo{animation:pulso 1.2s infinite}
+@keyframes pulso{0%{box-shadow:0 0 0 0 rgba(209,52,74,.7)}100%{box-shadow:0 0 0 20px rgba(209,52,74,0)}}
+#fala{font-size:1.1rem;font-weight:600;min-height:1.6em}
+#retorno{color:#d9c9e6;font-size:.95rem;min-height:1.5em}
+.exemplos{display:flex;flex-wrap:wrap;gap:.45rem}
+.exemplos button{background:transparent;border:1px solid #8c74a1;color:#fff;border-radius:2rem;padding:.3rem .8rem;font-size:.85rem;cursor:pointer}
+.exemplos button:hover{background:#6a4285}
+.digitar{display:flex;gap:.5rem}
+.digitar input{flex:1;min-width:0;border:0;border-radius:.5rem;padding:.6rem .8rem;background:#fff;color:var(--ink)}
+.digitar button{border:0;border-radius:.5rem;background:#fff;color:var(--acai);font-weight:700;padding:0 1rem;cursor:pointer}
+.opt{font-size:.85rem;color:#d9c9e6;display:flex;gap:.4rem;align-items:center}
+
+/* Filtros */
+.layout{max-width:1120px;margin:auto;padding:1.5rem 1.25rem;display:grid;gap:2rem}
+.filtros{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center}
+.filtros strong{margin-right:.25rem}
+.chip{border:1.5px solid var(--ink);background:transparent;border-radius:.5rem;padding:.35rem .8rem;cursor:pointer;font-weight:600;font-size:.9rem}
+.chip[aria-pressed=true]{background:var(--ink);color:#fff}
+.chip[aria-pressed=true]::before{content:"✕ "}
+
+/* Cardápio */
+.secao{margin-top:2rem}
+.secao h2{font-size:1.6rem;font-weight:800;letter-spacing:-.01em;border-bottom:3px solid var(--acai);padding-bottom:.35rem}
+.prato{display:grid;grid-template-columns:3.5rem 1fr auto;gap:.2rem 1rem;align-items:start;padding:1.1rem 0;border-bottom:1px solid var(--line)}
+.prato[hidden]{display:none}
+.foto{grid-row:span 3;width:3.5rem;height:3.5rem;border-radius:50% 50% 50% .4rem;background:#e9e1ef;display:grid;place-items:center;font-size:1.9rem}
+.prato h3{font-size:1.15rem;font-weight:600}
+.preco{font-weight:800;font-size:1.1rem;white-space:nowrap}
+.desc{grid-column:2/4;color:var(--muted);font-size:.95rem;max-width:60ch}
+.etiquetas{grid-column:2;display:flex;flex-wrap:wrap;gap:.35rem;list-style:none;padding:0;align-items:center}
+.etiquetas li{font-size:.78rem;font-weight:600;padding:.12rem .55rem;border-radius:.3rem}
+.alergeno{background:var(--alerta);color:var(--alerta-ink)}
+.alergeno::before{content:"⚠ "}
+.dieta{background:var(--folha-bg);color:var(--folha)}
+.add{grid-column:3;justify-self:end;border:0;background:var(--acai);color:#fff;border-radius:.5rem;padding:.5rem 1rem;font-weight:600;cursor:pointer}
+.add:hover{background:var(--guarana)}
+.vazio{padding:1rem;color:var(--muted)}
+
+/* Pedido */
+#pedido{position:fixed;left:0;right:0;bottom:0;max-height:82vh;overflow:auto;background:#fff;border-radius:1.25rem 1.25rem 0 0;box-shadow:0 -8px 30px rgba(35,26,43,.25);padding:1.25rem;transform:translateY(105%);transition:transform .25s;z-index:20}
+#pedido.aberto{transform:none}
+#pedido h2{font-size:1.3rem;font-weight:800;display:flex;justify-content:space-between;align-items:center}
+#fechar{border:0;background:none;font-size:1.4rem;cursor:pointer}
+#itens{list-style:none;padding:0;margin:.75rem 0}
+#itens li{display:grid;grid-template-columns:1fr auto;gap:.1rem .75rem;padding:.6rem 0;border-bottom:1px solid var(--line)}
+.qtd{display:flex;gap:.4rem;align-items:center;grid-column:1}
+.qtd button{width:1.9rem;height:1.9rem;border-radius:50%;border:1.5px solid var(--ink);background:none;cursor:pointer;font-weight:800}
+.sub{font-weight:600;grid-row:1/3;grid-column:2;align-self:center}
+.total{display:flex;justify-content:space-between;font-size:1.25rem;font-weight:800;margin:.5rem 0 1rem}
+.btn{width:100%;border:0;border-radius:.6rem;background:var(--folha);color:#fff;font-weight:800;padding:.85rem;font-size:1rem;cursor:pointer}
+.btn:disabled{background:#b5b9ae;cursor:not-allowed}
+.btn.sec{background:none;color:var(--ink);border:1.5px solid var(--ink);margin-top:.5rem}
+#barra{position:fixed;left:.75rem;right:.75rem;bottom:.75rem;z-index:15;border:0;border-radius:.8rem;background:var(--ink);color:#fff;padding:.9rem 1rem;display:flex;justify-content:space-between;font-weight:700;cursor:pointer;box-shadow:0 6px 20px rgba(0,0,0,.3)}
+dialog{border:0;border-radius:1rem;padding:1.5rem;max-width:min(92vw,28rem);box-shadow:0 20px 60px rgba(0,0,0,.35)}
+dialog::backdrop{background:rgba(35,26,43,.6)}
+dialog h2{margin-bottom:.5rem}
+dialog ul{margin:.75rem 0 1rem 1.2rem}
+
+@media (min-width:960px){
+  .topo-in{grid-template-columns:1.1fr 1fr;align-items:center}
+  .layout{grid-template-columns:1fr 340px;align-items:start}
+  body{padding-bottom:0}
+  #barra,#fechar{display:none}
+  #pedido{position:sticky;top:1rem;transform:none;border-radius:1rem;box-shadow:none;border:1.5px solid var(--ink);max-height:calc(100vh - 2rem);z-index:1}
+}
+@media (max-width:420px){
+  .prato{grid-template-columns:3rem 1fr auto}
+  .foto{width:3rem;height:3rem;font-size:1.6rem}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+</style>
+</head>
+<body>
+
+<header class="topo">
+  <div class="topo-in">
+    <div>
+      <h1>Sabores do Rio</h1>
+      <p class="sub">Peça falando. Toque no microfone e diga, por exemplo, “quero duas moquecas”.</p>
+    </div>
+    <section class="voz" aria-label="Pedido por voz">
+      <div class="voz-linha">
+        <button id="mic" aria-label="Ativar microfone">🎤</button>
+        <div>
+          <div id="fala" aria-live="polite">Toque no microfone para falar</div>
+          <div id="retorno" aria-live="polite"></div>
+        </div>
+      </div>
+      <div class="exemplos" aria-label="Comandos de exemplo">
+        <button>quero duas moquecas</button>
+        <button>adicionar um pastel</button>
+        <button>sem glúten</button>
+        <button>remover pastel</button>
+        <button>finalizar pedido</button>
+      </div>
+      <form class="digitar" id="formTexto">
+        <label class="sr" for="txt">Digitar comando</label>
+        <input id="txt" placeholder="Ou digite um comando…" autocomplete="off">
+        <button>Enviar</button>
+      </form>
+      <label class="opt"><input type="checkbox" id="falar" checked> Responder em voz alta</label>
+    </section>
+  </div>
+</header>
+
+<div class="layout">
+  <div>
+    <div class="filtros" role="group" aria-label="Filtrar por alérgeno">
+      <strong>Tenho alergia a:</strong>
+      <button class="chip" data-al="gluten" aria-pressed="false">Glúten</button>
+      <button class="chip" data-al="lactose" aria-pressed="false">Lactose</button>
+      <button class="chip" data-al="ovo" aria-pressed="false">Ovo</button>
+      <button class="chip" data-al="peixe" aria-pressed="false">Peixe</button>
+    </div>
+
+    <!-- MICRODADOS: Restaurant > Menu > MenuSection > MenuItem -->
+    <main itemscope itemtype="https://schema.org/Restaurant">
+      <meta itemprop="name" content="Sabores do Rio">
+      <meta itemprop="servesCuisine" content="Brasileira">
+      <div itemprop="hasMenu" itemscope itemtype="https://schema.org/Menu">
+        <meta itemprop="name" content="Cardápio">
+
+        <section class="secao" itemprop="hasMenuSection" itemscope itemtype="https://schema.org/MenuSection">
+          <h2 itemprop="name">Entradas</h2>
+
+          <article class="prato" itemprop="hasMenuItem" itemscope itemtype="https://schema.org/MenuItem" data-id="pastel" data-keys="pastel,pasteis" data-al="gluten,lactose">
+            <div class="foto" aria-hidden="true">🥟</div>
+            <h3 itemprop="name">Pastel de Queijo</h3>
+            <div class="preco" itemprop="offers" itemscope itemtype="https://schema.org/Offer"><meta itemprop="priceCurrency" content="BRL">R$ <span itemprop="price" content="18.00">18,00</span></div>
+            <p class="desc" itemprop="description">Massa crocante recheada com queijo coalho derretido.</p>
+            <ul class="etiquetas">
+              <li class="alergeno" itemprop="additionalProperty" itemscope itemtype="https://schema.org/PropertyValue"><meta itemprop="name" content="Alérgeno"><span itemprop="value">Glúten</span></li>
+              <li class="alergeno" itemprop="additionalProperty" itemscope itemtype="https://schema.org/PropertyValue"><meta itemprop="name" content="Alérgeno"><span itemprop="value">Lactose</span></li>
+            </ul>
+            <button class="add">Adicionar</button>
+          </article>
+
+          <article class="prato" itemprop="hasMenuItem" itemscope itemtype="https://schema.org/MenuItem" data-id="bolinho" data-keys="bolinho,bolinhos,bacalhau" data-al="gluten,ovo,peixe">
+            <div class="foto" aria-hidden="true">🐟</div>
+            <h3 itemprop="name">Bolinho de Bacalhau</h3>
+            <div class="preco" itemprop="offers" itemscope itemtype="https://schema.org/Offer"><meta itemprop="priceCurrency" content="BRL">R$ <span itemprop="price" content="26.00">26,00</span></div>
+            <p class="desc" itemprop="description">Seis unidades com bacalhau desfiado, batata e salsinha.</p>
+            <ul class="etiquetas">
+              <li class="alergeno" itemprop="additionalProperty" itemscope itemtype="https://schema.org/PropertyValue"><meta itemprop="name" content="Alérgeno"><span itemprop="value">Glúten</span></li>
+              <li class="alergeno" itemprop="additionalProperty" itemscope itemtype="https://schema.org/PropertyValue"><meta itemprop="name" content="Alérgeno"><span itemprop="value">Ovo</span></li>
+              <li class="alergeno" itemprop="additionalProperty" itemscope itemtype="https://schema.org/PropertyValue"><meta itemprop="name" content="Alérgeno"><span itemprop="value">Peixe</span></li>
+            </ul>
+            <button class="add">Adicionar</button>
+          </article>
+
+          <article class="prato" itemprop="hasMenuItem" itemscope itemtype="https://schema.org/MenuItem" data-id="salada" data-keys="salada" data-al="">
+            <div class="foto" aria-hidden="true">🥗</div>
+            <h3 itemprop="name">Salada Tropical</h3>
+            <div class="preco" itemprop="offers" itemscope itemtype="https://schema.org/Offer"><meta itemprop="priceCurrency" content="BRL">R$ <span itemprop="price" content="24.00">24,00</span></div>
+            <p class="desc" itemprop="description">Folhas verdes, manga, castanha-do-pará e molho de maracujá.</p>
+            <ul class="etiquetas">
+              <li class="dieta"><link itemprop="suitableForDiet" href="https://schema.org/VeganDiet">Vegano</li>
+              <li class="dieta"><link itemprop="suitableForDiet" href="https://schema.org/GlutenFreeDiet">Sem glúten</li>
+            </ul>
+            <button class="add">Adicionar</button>
+          </article>
+        </section>
+
+        <section class="secao" itemprop="hasMenuSection" itemscope itemtype="https://schema.org/MenuSection">
+          <h2 itemprop="name">Pratos principais</h2>
+
+          <article class="prato" itemprop="hasMenuItem" itemscope itemtype="https://schema.org/MenuItem" data-id="moqueca" data-keys="moqueca,moquecas" data-al="peixe">
+            <div class="foto" aria-hidden="true">🍲</div>
+            <h3 itemprop="name">Moqueca de Peixe</h3>
+            <div class="preco" itemprop="offers" itemscope itemtype="https://schema.org/Offer"><meta itemprop="priceCurrency" content="BRL">R$ <span itemprop="price" content="62.00">62,00</span></div>
+            <p class="desc" itemprop="description">Peixe fresco no leite de coco e dendê, com arroz e pirão.</p>
+            <ul class="etiquetas">
+              <li class="alergeno" itemprop="additionalProperty" itemscope itemtype="https://schema.org/PropertyValue"><meta itemprop="name" content="Alérgeno"><span itemprop="value">Peixe</span></li>
+              <li class="dieta"><link itemprop="suitableForDiet" href="https://schema.org/GlutenFreeDiet">Sem glúten</li>
+            </ul>
+            <button class="add">Adicionar</button>
+          </article>
+
+          <article class="prato" itemprop="hasMenuItem" itemscope itemtype="https://schema.org/MenuItem" data-id="tucunare" data-keys="tucunare,tucunares" data-al="peixe">
+            <div class="foto" aria-hidden="true">🐠</div>
+            <h3 itemprop="name">Tucunaré Grelhado</h3>
+            <div class="preco" itemprop="offers" itemscope itemtype="https://schema.org/Offer"><meta itemprop="priceCurrency" content="BRL">R$ <span itemprop="price" content="58.00">58,00</span></div>
+            <p class="desc" itemprop="description">Filé grelhado na brasa com baião de dois e vinagrete.</p>
+            <ul class="etiquetas">
+              <li class="alergeno" itemprop="additionalProperty" itemscope itemtype="https://schema.org/PropertyValue"><meta itemprop="name" content="Alérgeno"><span itemprop="value">Peixe</span></li>
+              <li class="dieta"><link itemprop="suitableForDiet" href="https://schema.org/GlutenFreeDiet">Sem glúten</li>
+            </ul>
+            <button class="add">Adicionar</button>
+          </article>
+
+          <article class="prato" itemprop="hasMenuItem" itemscope itemtype="https://schema.org/MenuItem" data-id="strogonoff" data-keys="strogonoff,estrogonofe" data-al="lactose">
+            <div class="foto" aria-hidden="true">🍛</div>
+            <h3 itemprop="name">Strogonoff de Frango</h3>
+            <div class="preco" itemprop="offers" itemscope itemtype="https://schema.org/Offer"><meta itemprop="priceCurrency" content="BRL">R$ <span itemprop="price" content="44.00">44,00</span></div>
+            <p class="desc" itemprop="description">Cubos de frango em molho cremoso, arroz branco e batata palha.</p>
+            <ul class="etiquetas">
+              <li class="alergeno" itemprop="additionalProperty" itemscope itemtype="https://schema.org/PropertyValue"><meta itemprop="name" content="Alérgeno"><span itemprop="value">Lactose</span></li>
+            </ul>
+            <button class="add">Adicionar</button>
+          </article>
+
+          <article class="prato" itemprop="hasMenuItem" itemscope itemtype="https://schema.org/MenuItem" data-id="risoto" data-keys="risoto,risotos,cogumelo,cogumelos" data-al="lactose">
+            <div class="foto" aria-hidden="true">🍄</div>
+            <h3 itemprop="name">Risoto de Cogumelos</h3>
+            <div class="preco" itemprop="offers" itemscope itemtype="https://schema.org/Offer"><meta itemprop="priceCurrency" content="BRL">R$ <span itemprop="price" content="48.00">48,00</span></div>
+            <p class="desc" itemprop="description">Arroz arbóreo, mix de cogumelos frescos e parmesão.</p>
+            <ul class="etiquetas">
+              <li class="alergeno" itemprop="additionalProperty" itemscope itemtype="https://schema.org/PropertyValue"><meta itemprop="name" content="Alérgeno"><span itemprop="value">Lactose</span></li>
+              <li class="dieta"><link itemprop="suitableForDiet" href="https://schema.org/VegetarianDiet">Vegetariano</li>
+              <li class="dieta"><link itemprop="suitableForDiet" href="https://schema.org/GlutenFreeDiet">Sem glúten</li>
+            </ul>
+            <button class="add">Adicionar</button>
+          </article>
+
+          <article class="prato" itemprop="hasMenuItem" itemscope itemtype="https://schema.org/MenuItem" data-id="hamburguer" data-keys="hamburguer,hamburgueres,burger" data-al="gluten,lactose,ovo">
+            <div class="foto" aria-hidden="true">🍔</div>
+            <h3 itemprop="name">Hambúrguer da Casa</h3>
+            <div class="preco" itemprop="offers" itemscope itemtype="https://schema.org/Offer"><meta itemprop="priceCurrency" content="BRL">R$ <span itemprop="price" content="38.00">38,00</span></div>
+            <p class="desc" itemprop="description">Blend de 180 g, queijo prato, tomate e maionese caseira no pão brioche.</p>
+            <ul class="etiquetas">
+              <li class="alergeno" itemprop="additionalProperty" itemscope itemtype="https://schema.org/PropertyValue"><meta itemprop="name" content="Alérgeno"><span itemprop="value">Glúten</span></li>
+              <li class="alergeno" itemprop="additionalProperty" itemscope itemtype="https://schema.org/PropertyValue"><meta itemprop="name" content="Alérgeno"><span itemprop="value">Lactose</span></li>
+              <li class="alergeno" itemprop="additionalProperty" itemscope itemtype="https://schema.org/PropertyValue"><meta itemprop="name" content="Alérgeno"><span itemprop="value">Ovo</span></li>
+            </ul>
+            <button class="add">Adicionar</button>
+          </article>
+        </section>
+
+        <section class="secao" itemprop="hasMenuSection" itemscope itemtype="https://schema.org/MenuSection">
+          <h2 itemprop="name">Sobremesas e bebidas</h2>
+
+          <article class="prato" itemprop="hasMenuItem" itemscope itemtype="https://schema.org/MenuItem" data-id="pudim" data-keys="pudim,pudins,flan" data-al="lactose,ovo">
+            <div class="foto" aria-hidden="true">🍮</div>
+            <h3 itemprop="name">Pudim de Leite</h3>
+            <div class="preco" itemprop="offers" itemscope itemtype="https://schema.org/Offer"><meta itemprop="priceCurrency" content="BRL">R$ <span itemprop="price" content="16.00">16,00</span></div>
+            <p class="desc" itemprop="description">Receita tradicional com calda de caramelo.</p>
+            <ul class="etiquetas">
+              <li class="alergeno" itemprop="additionalProperty" itemscope itemtype="https://schema.org/PropertyValue"><meta itemprop="name" content="Alérgeno"><span itemprop="value">Lactose</span></li>
+              <li class="alergeno" itemprop="additionalProperty" itemscope itemtype="https://schema.org/PropertyValue"><meta itemprop="name" content="Alérgeno"><span itemprop="value">Ovo</span></li>
+              <li class="dieta"><link itemprop="suitableForDiet" href="https://schema.org/GlutenFreeDiet">Sem glúten</li>
+            </ul>
+            <button class="add">Adicionar</button>
+          </article>
+
+          <article class="prato" itemprop="hasMenuItem" itemscope itemtype="https://schema.org/MenuItem" data-id="sorvete" data-keys="sorvete,sorvetes" data-al="lactose">
+            <div class="foto" aria-hidden="true">🍨</div>
+            <h3 itemprop="name">Sorvete de Cupuaçu</h3>
+            <div class="preco" itemprop="offers" itemscope itemtype="https://schema.org/Offer"><meta itemprop="priceCurrency" content="BRL">R$ <span itemprop="price" content="15.00">15,00</span></div>
+            <p class="desc" itemprop="description">Duas bolas de sorvete artesanal da fruta amazônica.</p>
+            <ul class="etiquetas">
+              <li class="alergeno" itemprop="additionalProperty" itemscope itemtype="https://schema.org/PropertyValue"><meta itemprop="name" content="Alérgeno"><span itemprop="value">Lactose</span></li>
+              <li class="dieta"><link itemprop="suitableForDiet" href="https://schema.org/GlutenFreeDiet">Sem glúten</li>
+            </ul>
+            <button class="add">Adicionar</button>
+          </article>
+
+          <article class="prato" itemprop="hasMenuItem" itemscope itemtype="https://schema.org/MenuItem" data-id="suco" data-keys="suco,sucos,graviola" data-al="">
+            <div class="foto" aria-hidden="true">🥤</div>
+            <h3 itemprop="name">Suco de Graviola</h3>
+            <div class="preco" itemprop="offers" itemscope itemtype="https://schema.org/Offer"><meta itemprop="priceCurrency" content="BRL">R$ <span itemprop="price" content="10.00">10,00</span></div>
+            <p class="desc" itemprop="description">Polpa natural batida na hora, 400 ml.</p>
+            <ul class="etiquetas">
+              <li class="dieta"><link itemprop="suitableForDiet" href="https://schema.org/VeganDiet">Vegano</li>
+              <li class="dieta"><link itemprop="suitableForDiet" href="https://schema.org/GlutenFreeDiet">Sem glúten</li>
+            </ul>
+            <button class="add">Adicionar</button>
+          </article>
+        </section>
+      </div>
+    </main>
+    <p class="vazio" id="semResultado" hidden>Nenhum prato disponível com esses filtros. Diga “mostrar tudo” para limpar.</p>
+  </div>
+
+  <aside id="pedido" aria-label="Seu pedido">
+    <h2>Seu pedido <button id="fechar" aria-label="Fechar pedido">✕</button></h2>
+    <ul id="itens"></ul>
+    <p class="vazio" id="vazioPedido">Nenhum item ainda. Diga o que você quer ou toque em “Adicionar”.</p>
+    <div class="total"><span>Total</span><span id="total">R$ 0,00</span></div>
+    <button class="btn" id="finalizar" disabled>Finalizar pedido</button>
+    <button class="btn sec" id="limpar">Limpar pedido</button>
+  </aside>
+</div>
+
+<button id="barra" aria-controls="pedido"><span id="barraQtd">Ver pedido · 0 itens</span><span id="barraTotal">R$ 0,00</span></button>
+
+<dialog id="ok">
+  <h2>Pedido enviado! ✅</h2>
+  <p id="okNum"></p>
+  <ul id="okLista"></ul>
+  <button class="btn" id="okFechar">Fechar</button>
+</dialog>
+
+<script>
+const $ = s => document.querySelector(s);
+const norm = s => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+const moeda = n => n.toLocaleString('pt-BR', {style:'currency', currency:'BRL'});
+
+// Lê os pratos direto da marcação com Microdados (fonte única de dados)
+const pratos = [...document.querySelectorAll('.prato')].map(el => ({
+  el, id: el.dataset.id,
+  nome: el.querySelector('[itemprop=name]').textContent.trim(),
+  preco: parseFloat(el.querySelector('[itemprop=price]').getAttribute('content')),
+  chaves: el.dataset.keys.split(','),
+  alergenos: el.dataset.al ? el.dataset.al.split(',') : []
+}));
+const porId = Object.fromEntries(pratos.map(p => [p.id, p]));
+const carrinho = new Map();
+const excluidos = new Set();
+
+/* ---------- Pedido ---------- */
+function desenhar() {
+  const ul = $('#itens'); ul.innerHTML = '';
+  let total = 0, qtd = 0;
+  carrinho.forEach((q, id) => {
+    const p = porId[id]; total += p.preco * q; qtd += q;
+    const li = document.createElement('li');
+    li.innerHTML = `<span>${p.nome}</span><span class="sub">${moeda(p.preco * q)}</span>
+      <span class="qtd"><button aria-label="Menos um ${p.nome}" data-a="-" data-id="${id}">−</button><b>${q}</b><button aria-label="Mais um ${p.nome}" data-a="+" data-id="${id}">+</button></span>`;
+    ul.appendChild(li);
+  });
+  $('#total').textContent = $('#barraTotal').textContent = moeda(total);
+  $('#barraQtd').textContent = `Ver pedido · ${qtd} ${qtd === 1 ? 'item' : 'itens'}`;
+  $('#vazioPedido').hidden = qtd > 0;
+  $('#finalizar').disabled = qtd === 0;
+}
+function mudar(id, d) {
+  const q = (carrinho.get(id) || 0) + d;
+  q > 0 ? carrinho.set(id, q) : carrinho.delete(id);
+  desenhar();
+}
+$('#itens').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (b) mudar(b.dataset.id, b.dataset.a === '+' ? 1 : -1);
+});
+document.querySelectorAll('.add').forEach(b => b.addEventListener('click', () => {
+  const p = porId[b.closest('.prato').dataset.id];
+  mudar(p.id, 1); dizer(`${p.nome} adicionado.`, false);
+}));
+$('#limpar').onclick = limparPedido;
+function limparPedido() { carrinho.clear(); desenhar(); dizer('Pedido limpo.'); }
+function finalizar() {
+  if (!carrinho.size) return dizer('Seu pedido está vazio.');
+  const num = Math.floor(100 + Math.random() * 900);
+  $('#okNum').textContent = `Pedido nº ${num} enviado para a cozinha. Total: ${$('#total').textContent}`;
+  $('#okLista').innerHTML = [...carrinho].map(([id, q]) => `<li>${q}× ${porId[id].nome}</li>`).join('');
+  $('#ok').showModal(); $('#pedido').classList.remove('aberto');
+  dizer(`Pedido ${num} enviado para a cozinha.`);
+  carrinho.clear(); desenhar();
+}
+$('#finalizar').onclick = finalizar;
+$('#okFechar').onclick = () => $('#ok').close();
+$('#barra').onclick = () => $('#pedido').classList.add('aberto');
+$('#fechar').onclick = () => $('#pedido').classList.remove('aberto');
+
+/* ---------- Filtros de alérgenos ---------- */
+function aplicarFiltros() {
+  document.querySelectorAll('.chip').forEach(c => c.setAttribute('aria-pressed', excluidos.has(c.dataset.al)));
+  let visiveis = 0;
+  pratos.forEach(p => { const oculta = p.alergenos.some(a => excluidos.has(a)); p.el.hidden = oculta; if (!oculta) visiveis++; });
+  document.querySelectorAll('.secao').forEach(s => s.hidden = !s.querySelector('.prato:not([hidden])'));
+  $('#semResultado').hidden = visiveis > 0;
+}
+document.querySelectorAll('.chip').forEach(c => c.addEventListener('click', () => {
+  excluidos.has(c.dataset.al) ? excluidos.delete(c.dataset.al) : excluidos.add(c.dataset.al); aplicarFiltros();
+}));
+
+/* ---------- Comandos de voz ---------- */
+const NUM = {um:1, uma:1, dois:2, duas:2, tres:3, quatro:4, cinco:5, seis:6, sete:7, oito:8, nove:9, dez:10};
+function dizer(msg, falar = true) {
+  $('#retorno').textContent = msg;
+  if (falar && $('#falar').checked && 'speechSynthesis' in window) {
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(msg); u.lang = 'pt-BR'; speechSynthesis.speak(u);
+  }
+}
+function achar(t) {
+  let melhor = null, pontos = 0;
+  pratos.forEach(p => { const s = p.chaves.filter(k => t.includes(k)).length; if (s > pontos) { pontos = s; melhor = p; } });
+  return melhor;
+}
+function comando(texto) {
+  const t = norm(texto);
+  $('#fala').textContent = `“${texto}”`;
+  const m = t.match(/\b(\d+|um|uma|dois|duas|tres|quatro|cinco|seis|sete|oito|nove|dez)\b/);
+  const qtd = m ? (NUM[m[1]] || parseInt(m[1], 10)) : 1;
+  const prato = achar(t);
+
+  if (/\b(limpar|esvaziar|cancelar)\b.*\b(pedido|tudo)\b/.test(t)) return limparPedido();
+  if (/\b(finalizar|confirmar|concluir|fechar)\b/.test(t)) return finalizar();
+  if (/\b(mostrar|ver|exibir)\b.*\b(tudo|todos)\b|sem filtro|limpar filtro/.test(t)) { excluidos.clear(); aplicarFiltros(); return dizer('Mostrando todos os pratos.'); }
+  if (/\b(mostrar|abrir|ver)\b.*\b(pedido|carrinho)\b/.test(t)) { $('#pedido').classList.add('aberto'); return dizer(`Seu total é ${$('#total').textContent}.`); }
+
+  if (prato && /\b(remover|remova|tirar|tire|retirar|retire)\b/.test(t)) {
+    if (!carrinho.has(prato.id)) return dizer(`${prato.nome} não está no pedido.`);
+    mudar(prato.id, -Math.min(qtd, carrinho.get(prato.id)));
+    return dizer(`Removi ${prato.nome}.`);
+  }
+  if (prato) {
+    if (prato.alergenos.some(a => excluidos.has(a))) return dizer(`Atenção: ${prato.nome} contém um alérgeno que você marcou. Não adicionei.`);
+    mudar(prato.id, qtd);
+    const alerta = prato.alergenos.length ? ` Contém ${prato.alergenos.join(', ')}.` : '';
+    return dizer(`Adicionei ${qtd} ${prato.nome}.${alerta}`);
+  }
+  const sem = [...t.matchAll(/sem (gluten|lactose|ovo|peixe)/g)].map(x => x[1]);
+  if (sem.length) { sem.forEach(a => excluidos.add(a)); aplicarFiltros(); return dizer(`Escondi os pratos com ${sem.join(' e ')}.`); }
+  dizer('Não entendi. Tente “quero duas moquecas” ou “sem glúten”.');
+}
+
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+const mic = $('#mic');
+if (!SR) {
+  mic.disabled = true;
+  $('#fala').textContent = 'Voz indisponível neste navegador (use Chrome ou Edge).';
+  $('#retorno').textContent = 'Você ainda pode digitar os comandos abaixo.';
+} else {
+  const rec = new SR(); rec.lang = 'pt-BR'; rec.interimResults = true; rec.maxAlternatives = 1;
+  let final = '';
+  mic.onclick = () => { if (mic.classList.contains('ouvindo')) return rec.stop(); speechSynthesis.cancel(); final = ''; try { rec.start(); } catch (e) {} };
+  rec.onstart = () => { mic.classList.add('ouvindo'); $('#fala').textContent = 'Ouvindo…'; $('#retorno').textContent = ''; };
+  rec.onresult = e => {
+    let txt = ''; for (const r of e.results) { txt += r[0].transcript; if (r.isFinal) final = txt; }
+    $('#fala').textContent = `“${txt}”`;
+  };
+  rec.onerror = e => { $('#fala').textContent = e.error === 'not-allowed' ? 'Permita o uso do microfone no navegador.' : 'Não consegui ouvir. Tente de novo.'; };
+  rec.onend = () => { mic.classList.remove('ouvindo'); if (final) comando(final); };
+}
+$('#formTexto').addEventListener('submit', e => { e.preventDefault(); const v = $('#txt').value.trim(); if (v) { comando(v); $('#txt').value = ''; } });
+document.querySelectorAll('.exemplos button').forEach(b => b.addEventListener('click', () => comando(b.textContent)));
+
+desenhar(); aplicarFiltros();
+</script>
+</body>
+</html>
