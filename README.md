@@ -13,6 +13,9 @@ Site estático feito só com HTML, CSS e JavaScript, sem backend.
 Abra o `index.html` no Chrome ou no Edge (a voz não funciona em todos os navegadores).
 Para publicar, envie esta pasta para um repositório no GitHub e conecte à Vercel.
 
+## Crédito da imagem
+Imagem do topo: NASA/Jessica Meir, "The Ucayali River in the lowland Amazon rainforest of central Peru" ([NASA Image and Video Library](https://images.nasa.gov/details/iss074e0492148)).
+
 ## Comandos de voz
 "quero duas moquecas", "remover pastel", "sem glúten", "mostrar tudo", "o que tem sem lactose?",
 "buscar cupuaçu", "limpar busca", "mesa 5", "observação sem cebola", "qual o total", "mostrar pedido", "finalizar pedido".
